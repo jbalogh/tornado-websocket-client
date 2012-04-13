@@ -16,4 +16,8 @@ class HelloSocket(websocket.WebSocket):
 
     def on_close(self):
         print 'Socket closed.'
+        
+
+ws = HelloSocket('ws://echo.websocket.org')
+ws.connect()
 ```
