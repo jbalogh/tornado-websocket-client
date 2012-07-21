@@ -14,6 +14,12 @@ class HelloSocket(websocket.WebSocket):
     def on_message(self, data):
         print data
 
+    def on_ping(self):
+        print 'I was pinged'
+
+    def on_pong(self):
+        print 'I was ponged'
+
     def on_close(self):
         print 'Socket closed.'
         
