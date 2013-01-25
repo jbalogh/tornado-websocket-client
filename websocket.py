@@ -31,7 +31,7 @@ Host: %(host)s:%(port)s
 Upgrade: websocket
 Connection: Upgrade
 Sec-Websocket-Key: %(key)s
-Sec-Websocket-Version: 13
+Sec-Websocket-Version: 13\
 """
 
 # Magic string defined in the spec for calculating keys.
@@ -69,13 +69,21 @@ def frame(data, opcode=0x01):
 class WebSocket(object):
     """Websocket client for protocol version 13 using the Tornado IO loop."""
 
-    def __init__(self, url, io_loop=None):
+    def __init__(self, url, io_loop=None, extra_headers=None):
         ports = {'ws': 80, 'wss': 443}
 
         self.url = urlparse.urlparse(url)
         self.host = self.url.hostname
         self.port = self.url.port or ports[self.url.scheme]
         self.path = self.url.path or '/'
+
+        if extra_headers is not None and len(extra_headers) > 0:
+            header_set = []
+            for k, v in extra_headers.iteritems():
+                header_set.append("%s: %s" % (k, v))
+            self.headers = "\r\n".join(header_set)
+        else:
+            self.headers = None
 
         self.client_terminated = False
         self.server_terminated = False
@@ -139,7 +147,10 @@ class WebSocket(object):
         self.stream.write(frame(data, opcode))
 
     def _on_connect(self):
-        request = '\r\n'.join(INIT.splitlines()) % self.__dict__ + '\r\n\r\n'
+        request = '\r\n'.join(INIT.splitlines()) % self.__dict__
+        if self.headers is not None:
+            request += '\r\n' + self.headers
+        request += '\r\n\r\n'
         self.stream.write(tornado.escape.utf8(request))
         self.stream.read_until('\r\n\r\n', self._on_headers)
 
