@@ -113,6 +113,9 @@ class WebSocket(object):
     def on_close(self):
         pass
 
+    def on_unsupported(self):
+        pass
+
     def write_message(self, message, binary=False):
         """Sends the given message to the client of this Web Socket."""
         if binary:
@@ -158,17 +161,20 @@ class WebSocket(object):
         first, _, rest = data.partition('\r\n')
         headers = HTTPHeaders.parse(rest)
         # Expect HTTP 101 response.
-        assert re.match('HTTP/[^ ]+ 101', first)
-        # Expect Connection: Upgrade.
-        assert headers['Connection'].lower() == 'upgrade'
-        # Expect Upgrade: websocket.
-        assert headers['Upgrade'].lower() == 'websocket'
-        # Sec-WebSocket-Accept should be derived from our key.
-        accept = base64.b64encode(hashlib.sha1(self.key + MAGIC).digest())
-        assert headers['Sec-WebSocket-Accept'] == accept
+        if not re.match('HTTP/[^ ]+ 101', first):
+            self._async_callback(self.on_unsupported)()
+            self.close()
+        else:
+            # Expect Connection: Upgrade.
+            assert headers['Connection'].lower() == 'upgrade'
+            # Expect Upgrade: websocket.
+            assert headers['Upgrade'].lower() == 'websocket'
+            # Sec-WebSocket-Accept should be derived from our key.
+            accept = base64.b64encode(hashlib.sha1(self.key + MAGIC).digest())
+            assert headers['Sec-WebSocket-Accept'] == accept
 
-        self._async_callback(self.on_open)()
-        self._receive_frame()
+            self._async_callback(self.on_open)()
+            self._receive_frame()
 
     def _receive_frame(self):
         self.stream.read_bytes(2, self._on_frame_start)
