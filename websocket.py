@@ -69,7 +69,7 @@ def frame(data, opcode=0x01):
 class WebSocket(object):
     """Websocket client for protocol version 13 using the Tornado IO loop."""
 
-    def __init__(self, url):
+    def __init__(self, url, io_loop=None):
         ports = {'ws': 80, 'wss': 443}
 
         self.url = urlparse.urlparse(url)
@@ -87,7 +87,7 @@ class WebSocket(object):
         self._waiting = None
 
         self.key = base64.b64encode(os.urandom(16))
-        self.stream = iostream.IOStream(socket.socket())
+        self.stream = iostream.IOStream(socket.socket(), io_loop)
         self.stream.connect((self.host, self.port), self._on_connect)
 
     def on_open(self):
